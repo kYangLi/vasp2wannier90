@@ -1,0 +1,9 @@
+# bands_num_points, dis_froz and kpath is not needed here.
+write_xyz=.True.
+write_hr=.True.
+
+num_iter=1000
+dis_num_iter = 1000
+
+bands_plot=.True.
+bands_plot_format = gnuplot

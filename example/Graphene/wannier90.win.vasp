@@ -1,0 +1,14 @@
+# 'bands_num_points', 'dis_froz' and 'kpath' is not needed here.
+num_bands=48
+num_wann=5
+exclude_bands=1-2
+
+iprint=2
+
+begin projections
+C:pz
+f=0.0,0.0,0.0:sp2:x=0.333333333,0.333333333,0.0
+end projections
+
+guiding_centres=.True.
+spinors = .False.
