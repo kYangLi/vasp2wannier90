@@ -24,10 +24,10 @@ BerryCurvature_calc   = F
 
 &SYSTEM
 NSLAB = 30
-NumOccupied = __NUM_OCCUPIED__        ! NumOccupied
-SOC = 1                 ! soc
-E_FERMI = __FERMI_ENERGY__        ! e-fermi
-surf_onsite = 0.0       ! surf_onsite
+NumOccupied = __NUM_OCCUPIED__  ! NumOccupied
+SOC = 1                         ! soc
+E_FERMI = __FERMI_ENERGY__      ! e-fermi
+surf_onsite = 0.0               ! surf_onsite
 /
 
 &PARAMETERS
@@ -48,27 +48,27 @@ Angstrom
 __BOLCK_LATTICE_VECTOR__
 
 ATOM_POSITIONS
-__ATOM_NUM__                              ! number of atoms for projectors
-Direct                          ! Direct or Cartisen coordinate
+__ATOM_NUM__     ! number of atoms for projectors
+Direct           ! Direct or Cartisen coordinate
 __BLOCK_ATOM_POS__
 
 ! Projections in wannier90:
 __PROJECTION_TIPS__
 !
 PROJECTORS
-__PROJECTION_NUM__        ! number of projectors
+__PROJECTION_NUM__   ! number of projectors
 __BLOCK_PROJECTION__
 
-MILLER_INDEX        ! this is equal to the SURFACE card
+MILLER_INDEX         ! this is equal to the SURFACE card
 1 0 0
 
-!SURFACE            ! MoS2 conventional (010) surface
+!SURFACE             ! MoS2 conventional (010) surface
  0  1  0
  0  0  1
  1  0  0
 
-KPATH_BULK            ! k point path
-__KPOINTS_NUM__              ! number of k line only for bulk band
+KPATH_BULK           ! k point path
+__KPOINTS_NUM__      ! number of k line only for bulk band
 __BLOCK_KPATH__
 
 KPATH_SLAB

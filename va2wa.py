@@ -347,6 +347,7 @@ def file_check(calc_para_list):
   for index in range(len(lines)):
     if 'LWANNIER90' in lines[index]:
       lines[index] = 'LWANNIER90  =  .TRUE.\n'
+      is_wannier90 = True
   if not is_wannier90:
     lines.append('LWANNIER90  =  .TRUE.\n')
   with open('INCAR.WNR', 'w') as fwp:
@@ -458,6 +459,7 @@ def post_process(job_id, calc_para_list, filename_list):
   sys_type = calc_para_list["sys_type"]
   wnr_folder = filename_list["wnr_folder"]
   band_folder = filename_list["band_folder"]
+  w90_folder = filename_list["w90_folder"]
   result_folder = filename_list["result_folder"]
   mpi_machinefile = filename_list["mpi_machinefile"]
   task_name = calc_para_list["task_name"]
@@ -481,6 +483,7 @@ def post_process(job_id, calc_para_list, filename_list):
     'rm -rf %s'%(wnr_folder),
     'rm -rf %s'%(band_folder),
     'rm -rf %s'%(result_folder),
+    'rm -rf %s'%(w90_folder),
     'rm     wannier90.win.vasp.res',
     'rm     POSCAR.*',
     'rm     %s.o*'%(task_name),

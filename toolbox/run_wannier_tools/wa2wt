@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 
-declare -r PYTHON="$(which python 2>/dev/null)"
+declare -r WA2WT="$( readlink -f $0 )"
+declare -r PYTHON="$( which python 2>/dev/null )"
 
 if [ -z "${PYTHON}" ]; then
   echo "[error] No program point to command 'python'!"
@@ -15,4 +16,4 @@ if [ -z "${python_version}" ]; then
   exit 1
 fi
 
-${PYTHON} ./report_result.py
+${PYTHON} ${WA2WT%/*}/wa2wt.py
