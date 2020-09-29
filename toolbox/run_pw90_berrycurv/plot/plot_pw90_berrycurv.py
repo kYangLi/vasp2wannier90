@@ -4,12 +4,9 @@
 # Descripution: This script is designed for plot the post-w90 berry curvature.
 #
 
-import json
 import os
 import sys
 import argparse
-import math
-import numpy as np
 print("[do] Loading the matplotlib.pyplot...")
 import matplotlib.pyplot as plt
 plt.switch_backend('agg') # For GUI less server
@@ -141,8 +138,8 @@ def plot_band(plot_args, curvs_block, dirc):
                        'font.family': 'STIXGeneral',
                        'mathtext.fontset': 'stix'})
   # Set the spacing between the axis and labels
-  plt.rcParams['xtick.major.pad']='6'
-  plt.rcParams['ytick.major.pad']='6'
+  plt.rcParams['xtick.major.pad'] = '6'
+  plt.rcParams['ytick.major.pad'] = '6'
   # Set the ticks 'inside' the axis
   plt.rcParams['xtick.direction'] = 'in'
   plt.rcParams['ytick.direction'] = 'in'
@@ -155,9 +152,9 @@ def plot_band(plot_args, curvs_block, dirc):
   plt.ylabel(r'$k_y\;\;\to$')
   plt.yticks([])
   ## Plot the curvature - x
-  hm = band_plot.imshow(plot_curvs_block, cmap=plt.cm.get_cmap('YlGnBu'), 
+  hotmap = band_plot.imshow(plot_curvs_block, cmap=plt.cm.get_cmap('YlGnBu'),
                         vmin=cb_min, vmax=cb_max)
-  plt.colorbar(hm)
+  plt.colorbar(hotmap)
   # Save the figure
   plot_bc_file = plot_filename + '-' + dirc + '.' + plot_format
   plt.savefig(plot_bc_file, format=plot_format, dpi=plot_dpi)

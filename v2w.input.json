@@ -1,15 +1,15 @@
 {
   "task_name":"va2wa",
   "intel_module": "ml intel/20u1",
-  "wnr_vasp":"/home/liyang1/Software/VASP/MAIN/vasp-544-patched_wannier90-2.1_20u1/bin/vasp_ncl",
-  "wannier90":"/home/liyang1/Software/Wannier90/wannier90-3.1.0_20u1/wannier90.x",
-  "vaspkit":"/home/liyang1/Software/VASP/Tools/VaspKit/vaspkit-1.12/bin/vaspkit",
-  "frowin_min_list":[-2.0, -1.5, -1.0, -0.5],
-  "frowin_max_list":[2.0, 1.5, 1.0, 0.5],
+  "wnr_vasp":"/home/liyang1/Software/CalcProg/VASP/Main/vasp-544-patched_wannier90-1.2_20u1/bin/vasp_ncl",
+  "wannier90":"/home/liyang1/Software/CalcProg/Wannier90/wannier90-3.1.0_20u1/wannier90.x",
+  "vaspkit":"/home/liyang1/Software/CalcProg/VASP/Tools/VaspKit/vaspkit-1.12/bin/vaspkit",
+  "frowin_min_list":[-2.0, -0.5],
+  "frowin_max_list":[2.0, 0.5],
   "sys_type":"pbs",
   "cores_per_node":24,
   "nodes_quantity":1,
   "pbs_walltime":48,
-  "pbs_queue":"cmt",
+  "pbs_queue":"unset-pbs-queue",
   "plot_energy_window":[-2,2]
 }

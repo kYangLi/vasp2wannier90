@@ -10,7 +10,7 @@ if [ -z "${PYTHON}" ]; then
   exit 1
 fi
 
-python_version=$(python --version | grep 'Python 3')
+python_version=$(python --version 2>&1 | grep 'Python 3')
 if [ -z "${python_version}" ]; then
   echo "[error] Please make sure the command 'python' point to python3."
   exit 1

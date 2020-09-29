@@ -33,7 +33,7 @@ def check_input_json(va2wa_path):
   with open(input_json) as jfrp:
     calc_para_list = json.load(jfrp)
   return calc_para_list
-  
+
 
 def read_parameters():
   print("")
@@ -60,9 +60,13 @@ def read_parameters():
   path_list = {"va2wa_path"  : va2wa_path,
                "python_exec" : python_exec}
   calc_para_list = check_input_json(va2wa_path)
-  sys_type_list = ["pbs","slurm","nscc"]
+  sys_type_list = ["pbs", "slurm", "nscc", "direct"]
+  # Remove the older RESULT
+  result_folder = filename_list["result_folder"]
+  if os.path.isdir(result_folder):
+    _ = os.system('rm -r %s' %result_folder)
   ## Read from command line
-  # Path list 
+  # Path list
   print("[para] You are using python: %s" %python_exec)
   print("[para] You are using the va2wa in: %s" %va2wa_path)
   print("")
@@ -391,7 +395,7 @@ def vasp_submit(filename_list, calc_para_list, path_list):
   task_name = calc_para_list["task_name"]
   va2wa_calc_script = os.path.join(va2wa_path, 'submit', 'va2wa_calc.py')
   python_exec = os.popen('which python').read().replace('\n','')
-  # PBS system 
+  # PBS system
   if sys_type == 'pbs':
     pbs_walltime = calc_para_list["pbs_walltime"]
     pbs_queue = calc_para_list["pbs_queue"]
@@ -403,14 +407,17 @@ def vasp_submit(filename_list, calc_para_list, path_list):
     script = script.replace('__nodes_quantity__', str(nodes_quantity))
     script = script.replace('__cores_per_node__', str(cores_per_node))
     script = script.replace('__pbs_walltime__', str(pbs_walltime))
-    script = script.replace('__pbs_queue__', pbs_queue)
+    if pbs_queue == 'unset-pbs-queue':
+      script = script.replace('#PBS -q', '##PBS -q')
+    else:
+      script = script.replace('__pbs_queue__', pbs_queue)
     script = script.replace('__python_exec__', python_exec)
     script = script.replace('__va2wa_calc_script__', va2wa_calc_script)
     script = script.replace('__mpi_mechinefile__', mpi_machinefile)
     with open('vasp_submit.pbs.sh', 'w') as fwp:
       fwp.write(script)
     command = 'qsub vasp_submit.pbs.sh'
-  # SLURM system 
+  # SLURM system
   elif sys_type == 'slurm':
     pbs_queue = calc_para_list["pbs_queue"]
     submit_file = "%s/submit/slurm.sh" %va2wa_path
@@ -419,7 +426,10 @@ def vasp_submit(filename_list, calc_para_list, path_list):
     script = script.replace('__task_name__', task_name)
     script = script.replace('__nodes_quantity__', str(nodes_quantity))
     script = script.replace('__total_cores__', str(total_cores))
-    script = script.replace('__pbs_queue__', pbs_queue)
+    if pbs_queue == 'unset-pbs-queue':
+      script = script.replace('#PBS -q', '##PBS -q')
+    else:
+      script = script.replace('__pbs_queue__', pbs_queue)
     script = script.replace('__python_exec__', python_exec)
     script = script.replace('__va2wa_calc_script__', va2wa_calc_script)
     with open('vasp_submit.slurm.sh', 'w') as fwp:
@@ -438,12 +448,22 @@ def vasp_submit(filename_list, calc_para_list, path_list):
     with open('vasp_submit.nscc.sh', 'w') as fwp:
       fwp.write(script)
     command = 'yhbatch vasp_submit.nscc.sh'
+  elif sys_type == 'direct':
+    submit_file = "%s/submit/direct.sh" %va2wa_path
+    with open(submit_file) as frp:
+      script = frp.read()
+    script = script.replace('__task_name__', task_name)
+    script = script.replace('__python_exec__', python_exec)
+    script = script.replace('__va2wa_calc_script__', va2wa_calc_script)
+    with open('vasp_submit.direct.sh', 'w') as fwp:
+      fwp.write(script)
+    command = 'nohup bash vasp_submit.direct.sh > %s.out 2>&1 &' %task_name
   # Submit the script
   print("[done] vasp_submit.%s.sh" %sys_type)
   _ = input("Press <Enter> to confirm the submition...")
   print("[do] Submitting the job...")
   print("[do] %s" %command)
-  job_id = os.popen(command).read().replace('\n','')
+  job_id = os.popen(command).read().replace('\n', '')
   if (sys_type == 'slurm') or (sys_type == 'nscc'):
     job_id = job_id.split()[-1]
   print("[done] Job ID: " + job_id)
@@ -528,7 +548,7 @@ def end_interface():
   print("+----------------------------+")
   print("|        SUBMIT DONE         |")
   print("+----------------------------+")
-  return 0 
+  return 0
 
 
 def main():

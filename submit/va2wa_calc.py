@@ -56,8 +56,11 @@ def mpirun(filename_list, calc_para_list, calc_prog, calc_prog_log):
                                              total_cores_number,
                                              calc_prog,
                                              calc_prog_log)
+  elif sys_type == 'direct':
+    command = "mpirun -np %d %s >> %s" %(total_cores_number, calc_prog,
+                                         calc_prog_log)
   start_time = time.time()
-  _ = os.system("date >> %s" %calc_prog_log) 
+  _ = os.system("date >> %s" %calc_prog_log)
   _ = os.system(intel_module + '; ' + command)
   _ = os.system("date >> %s" %calc_prog_log)
   end_time = time.time()
@@ -66,7 +69,7 @@ def mpirun(filename_list, calc_para_list, calc_prog, calc_prog_log):
 
 
 def vasp_res_collect(filename_list, time_spend, task_tag):
-  # Prepare 
+  # Prepare
   result_folder = filename_list["result_folder"]
   result_folder = '../%s' %result_folder
   if not os.path.isdir(result_folder):
@@ -79,9 +82,9 @@ def vasp_res_collect(filename_list, time_spend, task_tag):
   else:
     res_record = {"time"             : {},
                   "lattice_para"     : {},
-                  "fermi"            : {}, 
-                  "energy"           : {}, 
-                  "force_per_atom"   : {}, 
+                  "fermi"            : {},
+                  "energy"           : {},
+                  "force_per_atom"   : {},
                   "total_mag"        : {},
                   "w90_fitting_time" : {},
                   "w90_band_diff"    : {"curr_min" : ['none', 99999999999],
@@ -100,9 +103,9 @@ def vasp_res_collect(filename_list, time_spend, task_tag):
   lcs = lines[lc_index].split()
   lcs = [float(val) for val in lcs[:3]]
   # Fermi level
-  fermi_levels = grep('fermi', 'OUTCAR')
-  fermi_level = fermi_levels[-1].split(':')[1].split('X')[0].replace(' ','')
-  fermi_level = float(fermi_level)
+  fermi_energys = grep('fermi', 'OUTCAR')
+  fermi_energy = fermi_energys[-1].split(':')[1].split('X')[0].replace(' ','')
+  fermi_energy = float(fermi_energy)
   # Total energy
   total_energys = grep ('sigma', 'OUTCAR')
   total_energy = total_energys[-1].split('=')[2].replace(' ','')
@@ -136,7 +139,7 @@ def vasp_res_collect(filename_list, time_spend, task_tag):
   res_record["time"]["total"] = total_time
   res_record["time"][task_tag] = time_spend
   res_record["lattice_para"][task_tag] = lcs
-  res_record["fermi"][task_tag] = fermi_level
+  res_record["fermi"][task_tag] = fermi_energy
   res_record["energy"][task_tag] = total_energy
   res_record["force_per_atom"][task_tag] = force_per_atom
   res_record["total_mag"][task_tag] = total_mag
@@ -211,7 +214,7 @@ def vasp_band_plot_collect(filename_list, calc_para_list, path_list, mode):
   _ = os.system('cp BAND.dat %s' %band_res_folder)
   _ = os.system('cp PBAND_*.dat %s' %band_res_folder)
   _ = os.system('cp BAND_GAP %s' %band_res_folder)
-  # Plot Band 
+  # Plot Band
   va2wa_path = path_list["va2wa_path"]
   band_plot_script = "%s/plot/vaspkit_band.py" %va2wa_path
   python_exec = path_list["python_exec"]
@@ -260,11 +263,11 @@ def pbe_band(filename_list, calc_para_list, path_list):
 def get_kpath_ibzk():
   with open('KPATH.in') as frp:
     lines = frp.readlines()
-  kpoints_per_path = int(lines[1].replace(' ','').replace('\n',''))
+  kpoints_per_path = int(lines[1].replace(' ', '').replace('\n', ''))
   kpath_ibzk_origin_lines = lines[4:]
   kiols = []
   for kiol in kpath_ibzk_origin_lines:
-    if (kiol.replace(' ','').replace('\n','') == ''):
+    if kiol.replace(' ', '').replace('\n', '') == '':
       continue
     kiols.append(kiol)
   kpath_num = len(kiols)
@@ -298,7 +301,7 @@ def combine_ssc_band_kpoints():
   with open('KPOINT.WNR') as frp:
     lines = frp.readlines()
   try:
-    kgrid = lines[3].replace('\n','')
+    kgrid = lines[3].replace('\n', '')
     kgrid = kgrid.split()
     kgrid = [int(val) for val in kgrid[0:3]]
   except BaseException:
@@ -343,9 +346,9 @@ def scan_band(filename_list, calc_para_list, path_list):
   _ = os.system('cp ../KPOINT.WNR KPOINTS.WNR')
   ibzkpt = '../%s/IBZKPT'%(wnr_folder)
   if not os.path.isfile(ibzkpt):
-      print("[error] No IBZKPT file was found in VASP.WNR folder...")
-      print("[error] Please make sure the KPOINTS.WNR is under the grid mode.")
-      sys.exit(1)
+    print("[error] No IBZKPT file was found in VASP.WNR folder...")
+    print("[error] Please make sure the KPOINTS.WNR is under the grid mode.")
+    sys.exit(1)
   _ = os.system('cp %s IBZKPT.WNR' %ibzkpt)
   combine_ssc_band_kpoints()
   wavecar = "../%s/WAVECAR" %(wnr_folder)
@@ -395,22 +398,40 @@ def vasp_band(filename_list, calc_para_list, path_list):
   return 0
 
 
+def write_w90_band_f0(w90_band_file, fermi_energy):
+  with open(w90_band_file) as frp:
+    lines = frp.readlines()
+  f0_lines = []
+  for line in lines:
+    line = line.replace('\n', '').split()
+    if len(line) == 2:
+      k = line[0]
+      energy = float(line[1]) - fermi_energy
+      f0_lines.append("%14s   %.8e \n" %(k, energy))
+    else:
+      f0_lines.append("\n")
+  f0_band_file = w90_band_file.replace('.dat', '.f0.dat')
+  with open(f0_band_file, 'w') as fwp:
+    fwp.writelines(f0_lines)
+  return 0
+
+
 def wannier_res_collect(filename_list, path_list, time_spend, tag):
   result_folder = os.path.join('../..', filename_list["result_folder"])
   res_json_file = os.path.join(result_folder, filename_list["result_json"])
   wannier_res = os.path.join(result_folder, filename_list["w90_res_folder"])
+  wnr90_log = filename_list["wnr90_log"]
   va2wa_path = path_list["va2wa_path"]
   python_exec = path_list["python_exec"]
   w90_plot_py = os.path.join(va2wa_path, 'plot', 'wannier90_band.py')
-  vasp_band_json = os.path.join(result_folder, 
+  vasp_band_json = os.path.join(result_folder,
                                 filename_list["band_res_folder"], 
                                 filename_list["band_fig"]+'.json')
-  band_file_json = 'band_' + tag + '.json'
-  band_figure = 'band_' + tag + '.png'
+  band_file = 'band_fw_' + tag + '.*'
   # Read in fermi level
   with open('../input/E_FERMI')  as frp:
-    fermi_level = frp.readlines()
-    fermi_level = float(fermi_level[0].replace('\n', '').replace(' ',''))
+    fermi_energy = frp.readlines()
+    fermi_energy = float(fermi_energy[0].replace('\n', '').replace(' ', ''))
   if not os.path.isdir(wannier_res):
     os.mkdir(wannier_res)
   with open(res_json_file) as jfrp:
@@ -420,30 +441,36 @@ def wannier_res_collect(filename_list, path_list, time_spend, tag):
   if os.path.isfile('wannier90_band.dat') or \
      (os.path.isfile('wannier90.up_band.dat') and \
       os.path.isfile('wannier90.dn_band.dat')):
+    if os.path.isfile('wannier90_band.dat'):
+      write_w90_band_f0('wannier90_band.dat', fermi_energy)
+    if (os.path.isfile('wannier90.up_band.dat') and \
+        os.path.isfile('wannier90.dn_band.dat')):
+      write_w90_band_f0('wannier90.up_band.dat', fermi_energy)
+      write_w90_band_f0('wannier90.dn_band.dat', fermi_energy)
     # Plot band
-    command = '%s %s -t %s -b %s -e %f' \
-              %(python_exec, w90_plot_py, tag, vasp_band_json, fermi_level)
+    command = '%s %s -t fw_%s -b %s' %(python_exec, w90_plot_py, tag,
+                                       vasp_band_json)
     _ = os.system(command)
-    _ = os.system('cp %s %s/' %(band_figure, wannier_res))
-    _ = os.system('cp %s %s/' %(band_file_json, wannier_res))
-    _ = os.system('ln -s %s . ' %w90_plot_py)
+    _ = os.system('cp %s %s/' %(band_file, wannier_res))
+    _ = os.system('ln -s %s .' %w90_plot_py)
+    _ = os.system('ln -s %s vasp_band.json' %vasp_band_json)
+    # Record current minimal band diff.
     with open('current_band_diff.json') as jfrp:
       cbd = json.load(jfrp)
     cbd = cbd['cbd']
     curr_min_diff = result_json["w90_band_diff"]["curr_min"][1]
     if cbd < curr_min_diff:
       result_json["w90_band_diff"]["curr_min"] = [tag, cbd]
-  else:
-    error_file = os.path.join(wannier_res, tag+'.error')
-    with open(error_file, 'w') as fwp:
-      fwp.write('band calc error...\n')
+  else: # If there is no wannier band data
+    error_file = os.path.join(wannier_res, 'fw_'+tag+'.error')
+    _ = os.system('cp %s %s' %(wnr90_log, error_file))
     cbd = 'error'
   result_json["w90_band_diff"]['all'][tag] = cbd
-  # Dump json data 
+  # Dump json data
   with open(res_json_file, 'w') as jfwp:
     json.dump(result_json, jfwp, indent=2)
   with open('RUN_TIME', 'w') as fwp:
-          fwp.write('%f\n' %time_spend)
+    fwp.write('%f\n' %time_spend)
   return 0
 
 
@@ -482,11 +509,11 @@ def wnr90_band(filename_list, calc_para_list, path_list):
   else:
     os.chdir('input')
   # Fermi energy 
-  fermi_levels = grep('fermi', '../../%s/OUTCAR' %(wnr_folder))
-  fermi_level = fermi_levels[-1].split(':')[1].split('X')[0].replace(' ','')
-  fermi_level = float(fermi_level)
+  fermi_energys = grep('fermi', '../../%s/OUTCAR' %(wnr_folder))
+  fermi_energy = fermi_energys[-1].split(':')[1].split('X')[0].replace(' ','')
+  fermi_energy = float(fermi_energy)
   with open('E_FERMI','w')  as fwp:
-    fwp.write('%f\n' %fermi_level)
+    fwp.write('%f\n' %fermi_energy)
   # Band K path
   with open('KPOINTS.BAND') as frp:
     kpath_data = frp.readlines()
@@ -497,7 +524,8 @@ def wnr90_band(filename_list, calc_para_list, path_list):
                 'begin kpoint_path\n']
   hsk_list = []
   for line in kpath_data[4:]:
-    line = line.replace('\n','')
+    line = line.replace('\n','').replace('#',' ').replace('!',' ')
+    line = line.replace('GAMMA','G').replace('gamma','g').replace('Gamma','G')
     if line.replace(' ','') == '':
       continue
     hsk_list.append(line)
@@ -538,16 +566,16 @@ def wnr90_band(filename_list, calc_para_list, path_list):
       vasp_win[line_index] = 'num_bands = %d \n' %band_num
     elif 'exclude_bands' in vasp_win[line_index]:
       vasp_win[line_index] = '#' + vasp_win[line_index]
-  # Read in the win file for wannier90 
+  # Read in the win file for wannier90
   with open('wannier90.win.w90') as frp:
     w90_win = frp.readlines()
   # Quit the input folder
   os.chdir('..')
   # Loop for each froz_win folder
   for frowin_min in frowin_min_list:
-    real_frowin_min = frowin_min + fermi_level
+    real_frowin_min = frowin_min + fermi_energy
     for frowin_max in frowin_max_list:
-      real_frowin_max = frowin_max + fermi_level
+      real_frowin_max = frowin_max + fermi_energy
       tag = '%.2f_%.2f' %(frowin_min, frowin_max)
       curr_fw_folder = 'fw_%s' %(tag)
       ## If the froz folder exist
