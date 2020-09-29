@@ -117,6 +117,7 @@ def get_band_diff(vasp_band, w90_band, min_plot_energy, max_plot_energy):
 
 
 def read_all_band(plot_args):
+  """read all band data"""
   ## Read in the vasp band data
   with open(plot_args["plot_benchmark"]) as jfrp:
     vasp_band = json.load(jfrp)
@@ -167,6 +168,7 @@ def read_all_band(plot_args):
 
 
 def band_compare(band_data):
+  """compare bands"""
   min_plot_energy = band_data["min_plot_energy"]
   max_plot_energy = band_data["max_plot_energy"]
   vasp_kline_coors = band_data["vasp_kline_coors"]
@@ -252,7 +254,7 @@ def record_band_json_txt(plot_args, band_data):
           band_data['inp_vasp_band_energys'][0][vbi][kp_index]
         w90_energy = band_data['w90_band_energys'][0][band_index][kp_index]
         txt_data.append(' %.6f      %3.10f    %3.10f\n' %(kp, vasp_energy,
-                                                           w90_energy))
+                                                          w90_energy))
   with open(txt_file, 'w') as fwp:
     fwp.writelines(txt_data)
   return 0
@@ -341,6 +343,7 @@ def plot_compare_band(plot_args, band_data):
 
 
 def main():
+  """main function"""
   plot_args = get_command_line_input()
   print("[do] Reading band data...")
   band_data = read_all_band(plot_args)
