@@ -80,13 +80,15 @@ def vasp_res_collect(filename_list, time_spend, task_tag):
     with open(res_json_file) as jfrp:
       res_record = json.load(jfrp)
   else:
-    res_record = {"time"             : {},
+    res_record = {"time"             : {"total":0,
+                                        "wnr":0,
+                                        "band":0,
+                                        "w90_fitting":{"total":0,}},
                   "lattice_para"     : {},
                   "fermi"            : {},
                   "energy"           : {},
                   "force_per_atom"   : {},
                   "total_mag"        : {},
-                  "w90_fitting_time" : {},
                   "w90_band_diff"    : {"curr_min" : ['none', 99999999999],
                                         "all"      : {}
                                        }
@@ -436,7 +438,11 @@ def wannier_res_collect(filename_list, path_list, time_spend, tag):
     os.mkdir(wannier_res)
   with open(res_json_file) as jfrp:
     result_json = json.load(jfrp)
-  result_json["w90_fitting_time"][tag] = time_spend
+  result_json["time"]["w90_fitting"][tag] = time_spend
+  total_w90_time = result_json["time"]["w90_fitting"].get("total", 0)
+  total_w90_time += time_spend
+  result_json["time"]["w90_fitting"]["total"] = total_w90_time
+  result_json["time"]["total"] += time_spend
   # Collect the wannier band
   if os.path.isfile('wannier90_band.dat') or \
      (os.path.isfile('wannier90.up_band.dat') and \
@@ -571,6 +577,19 @@ def wnr90_band(filename_list, calc_para_list, path_list):
     w90_win = frp.readlines()
   # Quit the input folder
   os.chdir('..')
+  # Scan the current list first
+  exist_w90_folders = []
+  for dirc in os.listdir():
+    if 'fw_' in dirc:
+      exist_w90_folders.append(dirc)
+  for w90_dirc in exist_w90_folders:
+    # Recollect the result
+    os.chdir(w90_dirc)
+    tag = w90_dirc.replace('fw_', '')
+    with open('RUN_TIME') as frp:
+      time_spend = float(frp.readlines()[0].replace('\n', ''))
+    wannier_res_collect(filename_list, path_list, time_spend, tag)
+    os.chdir('..')
   # Loop for each froz_win folder
   for frowin_min in frowin_min_list:
     real_frowin_min = frowin_min + fermi_energy
@@ -582,12 +601,6 @@ def wnr90_band(filename_list, calc_para_list, path_list):
       if os.path.isdir(curr_fw_folder):
         print("[info] Folder %s/%s already exist, skip."
               %(w90_folder, curr_fw_folder))
-        # Recollect the result
-        os.chdir(curr_fw_folder)
-        with open('RUN_TIME') as frp:
-          time_spend = float(frp.readlines()[0].replace('\n',''))
-        wannier_res_collect(filename_list, path_list, time_spend, tag)
-        os.chdir('..')
         continue
       ## If the froz folder not exist
       print("[do] Calculating tag: %s" %tag)

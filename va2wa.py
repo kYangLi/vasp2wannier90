@@ -41,7 +41,7 @@ def read_parameters():
   print("|     Parameters Read in     |")
   print("+----------------------------+")
   ## Init Parameters lists
-  filename_list = {"mpi_machinefile" : 'cores-list.record',
+  filename_list = {"mpi_machinefile" : 'cores-list',
                    "wnr_folder"      : '1-VASP.WNR',
                    "band_folder"     : '2-VASP.BAND',
                    "w90_folder"      : '3-WNR90.BAND',
@@ -65,7 +65,7 @@ def read_parameters():
   result_folder = filename_list["result_folder"]
   if os.path.isdir(result_folder):
     _ = os.system('rm -r %s' %result_folder)
-  ## Read from command line
+  # Read from command line
   # Path list
   print("[para] You are using python: %s" %python_exec)
   print("[para] You are using the va2wa in: %s" %va2wa_path)
