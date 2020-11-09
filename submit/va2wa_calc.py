@@ -1,7 +1,7 @@
-import os 
-import sys 
-import json 
-import time 
+import os
+import sys
+import json
+import time
 
 
 def paras_load():
@@ -42,13 +42,18 @@ def mpirun(filename_list, calc_para_list, calc_prog, calc_prog_log):
   cores_per_node = calc_para_list["cores_per_node"]
   total_cores_number = nodes_quantity * cores_per_node
   intel_module = calc_para_list["intel_module"]
+  calc_prog = "%s wannier90"%calc_prog
   # Submit the jobs
   if sys_type == 'pbs':
+    openmp_cpus = calc_para_list["openmp_cpus"]
     mpi_machinefile = filename_list["mpi_machinefile"]
-    command = "mpirun -machinefile ../%s -np %d %s >> %s" %(mpi_machinefile,
-                                                            total_cores_number,
-                                                            calc_prog,
-                                                            calc_prog_log)
+    process_num = total_cores_number // openmp_cpus
+    process_per_node = process_num // nodes_quantity
+    command = "host=$(echo $(uniq ../%s) | sed 's/ /,/g'); \
+               export OMP_NUM_THREADS=%d; \
+               mpirun -host ${host} -ppn %d -np %d %s >> %s"\
+               %(mpi_machinefile, openmp_cpus, process_per_node,
+                 process_num, calc_prog, calc_prog_log)
   elif sys_type == 'slurm':
     command = "srun %s >> %s" %(calc_prog, calc_prog_log)
   elif sys_type == 'nscc':
@@ -57,8 +62,21 @@ def mpirun(filename_list, calc_para_list, calc_prog, calc_prog_log):
                                              calc_prog,
                                              calc_prog_log)
   elif sys_type == 'direct':
-    command = "mpirun -np %d %s >> %s" %(total_cores_number, calc_prog,
-                                         calc_prog_log)
+    openmp_cpus = calc_para_list["openmp_cpus"]
+    mpi_machinefile = filename_list["mpi_machinefile"]
+    process_num = total_cores_number // openmp_cpus
+    process_per_node = process_num // nodes_quantity
+    if not os.path.isfile("../%s"):
+      command = "export OMP_NUM_THREADS=%d; \
+                 mpirun -ppn %d -np %d %s >> %s"\
+                 %(openmp_cpus, process_per_node,
+                   process_num, calc_prog, calc_prog_log)
+    else:
+      command = "host=$(echo $(uniq ../%s) | sed 's/ /,/g'); \
+                 export OMP_NUM_THREADS=%d; \
+                 mpirun -host ${host} -ppn %d -np %d %s >> %s"\
+                 %(mpi_machinefile, openmp_cpus, process_per_node,
+                   process_num, calc_prog, calc_prog_log)
   start_time = time.time()
   _ = os.system("date >> %s" %calc_prog_log)
   _ = os.system(intel_module + '; ' + command)
@@ -97,19 +115,29 @@ def vasp_res_collect(filename_list, time_spend, task_tag):
   with open('OUTCAR') as frp:
     lines = frp.readlines()
   index = 0
+  lc_index = -6174
   for line in lines:
     if 'length of vectors' in line:
       lc_index = index
     index += 1
+  if lc_index == -6174:
+    print("[error] No 'length of vectors' was found in OUTCAR.")
+    sys.exit(1)
   lc_index += 1
   lcs = lines[lc_index].split()
   lcs = [float(val) for val in lcs[:3]]
   # Fermi level
   fermi_energys = grep('fermi', 'OUTCAR')
+  if fermi_energys == []:
+    print("[error] No 'fermi energy' was found in OUTCAR.")
+    sys.exit(1)
   fermi_energy = fermi_energys[-1].split(':')[1].split('X')[0].replace(' ','')
   fermi_energy = float(fermi_energy)
   # Total energy
-  total_energys = grep ('sigma', 'OUTCAR')
+  total_energys = grep('sigma', 'OUTCAR')
+  if total_energys == []:
+    print("[error] No 'total energy' was found in OUTCAR.")
+    sys.exit(1)
   total_energy = total_energys[-1].split('=')[2].replace(' ','')
   total_energy = float(total_energy)
   # Total force
@@ -121,13 +149,21 @@ def vasp_res_collect(filename_list, time_spend, task_tag):
   atom_num = [int(val) for val in atom_num]
   atom_num = sum(atom_num)
   force_per_atoms = grep('total drift', 'OUTCAR')
+  if force_per_atoms == []:
+    print("[error] No 'total drift' was found in OUTCAR.")
+    sys.exit(1)
   force_per_atom = force_per_atoms[-1].split(':')[1].split()
   force_per_atom[0] = float(force_per_atom[0])/atom_num
   force_per_atom[1] = float(force_per_atom[1])/atom_num
   force_per_atom[2] = float(force_per_atom[2])/atom_num
   # Total magnet
   total_mags = grep('mag=', 'OSZICAR')
-  total_mag = total_mags[-1].split('=')[4].split()
+  if total_mags == []:
+    print("[warning] No 'mag' was found in OSZICAR, you are using ISPIN=1?")
+    print("[warning] Set mag to 0...")
+    total_mag = [0,]
+  else:
+    total_mag = total_mags[-1].split('=')[4].split()
   if len(total_mag) == 3:
     total_mag = (float(total_mag[0])**2 + \
                  float(total_mag[1])**2 + \
@@ -184,7 +220,7 @@ def vasp_wnr(filename_list, calc_para_list):
 
 
 def vasp_band_plot_collect(filename_list, calc_para_list, path_list, mode):
-  ## Prepare 
+  ## Prepare
   curr_path = os.getcwd()
   result_folder = filename_list["result_folder"]
   result_folder = '../%s' %result_folder
@@ -204,14 +240,14 @@ def vasp_band_plot_collect(filename_list, calc_para_list, path_list, mode):
   else: #pbe mode
     vaspkit_band_code = '211'
     vaspkit_pband_code = '213'
-  # Total Band 
+  # Total Band
   command = '(echo %s; echo 0) | %s >> %s' \
             %(vaspkit_band_code, vaspkit, vaspkit_log)
   _ = os.system(command)
   # Projected Band
   command = '(echo %s) | %s >> %s' %(vaspkit_pband_code, vaspkit, vaspkit_log)
   _ = os.system(command)
-  # Copy Band file 
+  # Copy Band file
   _ = os.system('cp KLABELS %s' %band_res_folder)
   _ = os.system('cp BAND.dat %s' %band_res_folder)
   _ = os.system('cp PBAND_*.dat %s' %band_res_folder)
@@ -286,9 +322,9 @@ def get_kpath_ibzk():
     hsk_end = kiols[hsk_end_index].split()[:3]
     hsk_end = [float(val) for val in hsk_end]
     hsk_array = [
-      hsk_end[0] - hsk_begin[0],
-      hsk_end[1] - hsk_begin[1],
-      hsk_end[2] - hsk_begin[2]
+        hsk_end[0] - hsk_begin[0],
+        hsk_end[1] - hsk_begin[1],
+        hsk_end[2] - hsk_begin[2]
     ]
     for index in range(kpoints_per_path):
       kx = hsk_begin[0] + (index/(kpoints_per_path-1)) * hsk_array[0] 
@@ -300,7 +336,7 @@ def get_kpath_ibzk():
 
 
 def combine_ssc_band_kpoints():
-  with open('KPOINT.WNR') as frp:
+  with open('KPOINTS.WNR') as frp:
     lines = frp.readlines()
   try:
     kgrid = lines[3].replace('\n', '')
@@ -345,7 +381,7 @@ def scan_band(filename_list, calc_para_list, path_list):
   _ = os.system('ln -s ../POTCAR POTCAR')
   _ = os.system('cp ../POSCAR .')
   _ = os.system('cp ../KPOINTS.BAND KPATH.in')
-  _ = os.system('cp ../KPOINT.WNR KPOINTS.WNR')
+  _ = os.system('cp ../KPOINTS.WNR KPOINTS.WNR')
   ibzkpt = '../%s/IBZKPT'%(wnr_folder)
   if not os.path.isfile(ibzkpt):
     print("[error] No IBZKPT file was found in VASP.WNR folder...")
@@ -381,7 +417,7 @@ def vasp_band(filename_list, calc_para_list, path_list):
       if ('METAGGA' in upl) and ('SCAN' in upl):
         band_mode = 'scan'
         break
-  # Calc band or not 
+  # Calc band or not
   if os.path.isdir(band_folder):
     print("[info] Folder %s already exist, skip." %band_folder)
     os.chdir(band_folder)
@@ -545,9 +581,9 @@ def wnr90_band(filename_list, calc_para_list, path_list):
     beg_k_line = hsk_list[beg_k_index].split()
     end_k_line = hsk_list[end_k_index].split()
     beg_k_str = '  '.join([beg_k_line[3], beg_k_line[0], 
-                            beg_k_line[1],beg_k_line[2]])
+                           beg_k_line[1], beg_k_line[2]])
     end_k_str = '  '.join([end_k_line[3], end_k_line[0], 
-                            end_k_line[1],end_k_line[2]])
+                           end_k_line[1], end_k_line[2]])
     kpath_str = beg_k_str + '    ' + end_k_str
     kpath_win.append(kpath_str + '\n')
   kpath_win.append('end kpoint_path\n')
@@ -609,8 +645,9 @@ def wnr90_band(filename_list, calc_para_list, path_list):
       os.chdir(curr_fw_folder)
       # Create the wannier90.win
       fw_win = ['\n',
-                'dis_froz_min = %f \n' %real_frowin_min,
-                'dis_froz_max = %f \n' %real_frowin_max,
+                'dis_froz_min=%f \n' %real_frowin_min,
+                'dis_froz_max=%f \n' %real_frowin_max,
+                'fermi_energy=%f \n' %fermi_energy,
                 '\n']
       with open('wannier90.win', 'w') as fwp:
         total_win = vasp_win + fw_win + w90_win + kpath_win
