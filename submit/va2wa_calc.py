@@ -134,11 +134,11 @@ def vasp_res_collect(filename_list, time_spend, task_tag):
   fermi_energy = fermi_energys[-1].split(':')[1].split('X')[0].replace(' ','')
   fermi_energy = float(fermi_energy)
   # Total energy
-  total_energys = grep('sigma', 'OUTCAR')
+  total_energys = grep('TOTEN', 'OUTCAR')
   if total_energys == []:
     print("[error] No 'total energy' was found in OUTCAR.")
     sys.exit(1)
-  total_energy = total_energys[-1].split('=')[2].replace(' ','')
+  total_energy = total_energys[-1].split()[4]
   total_energy = float(total_energy)
   # Total force
   with open('POSCAR') as frp:
