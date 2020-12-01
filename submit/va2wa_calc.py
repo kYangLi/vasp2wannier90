@@ -209,6 +209,10 @@ def vasp_wnr(filename_list, calc_para_list):
     _ = os.system('cp ../POSCAR .')
     _ = os.system('cp ../KPOINTS.WNR KPOINTS')
     _ = os.system('cp ../wannier90.win.vasp wannier90.win')
+    if os.path.isfile('../WAVECAR.WNR'):
+      _ = os.system('cp ../WAVECAR.WNR WAVECAR')
+    if os.path.isfile('../CHGCAR.WNR'):
+      _ = os.system('cp ../CHGCAR.WNR CHGCAR')
     # Job Submit
     time_spend = mpirun(filename_list, calc_para_list, wnr_vasp, vasp_log)
     # Res. Collect
