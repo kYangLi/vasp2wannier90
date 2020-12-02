@@ -151,7 +151,7 @@ def read_parameters():
   print("[do] Read in the system type...")
   sys_type = calc_para_list.get("sys_type")
   if sys_type not in sys_type_list:
-    print("[input] Please input the system type of your mechine.")
+    print("[input] Please input the system type of your machine.")
     print("[input] You can choice one from the list: ", sys_type_list)
     sys_type = input("> ")
     if sys_type not in sys_type_list:
@@ -436,7 +436,7 @@ def vasp_submit(filename_list, calc_para_list, path_list):
       script = script.replace('__pbs_queue__', pbs_queue)
     script = script.replace('__python_exec__', python_exec)
     script = script.replace('__va2wa_calc_script__', va2wa_calc_script)
-    script = script.replace('__mpi_mechinefile__', mpi_machinefile)
+    script = script.replace('__mpi_machinefile__', mpi_machinefile)
     with open('vasp_submit.pbs.sh', 'w') as fwp:
       fwp.write(script)
     command = 'qsub vasp_submit.pbs.sh'

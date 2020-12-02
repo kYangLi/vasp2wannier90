@@ -10,6 +10,6 @@ declare -r va2wa_calc_SCRIPT=__va2wa_calc_script__
 # Enter the Calculate Folder
 cd ${PBS_O_WORKDIR}
 # Copy the Machinefile
-cp ${PBS_NODEFILE} __mpi_mechinefile__
+cp ${PBS_NODEFILE} __mpi_machinefile__
 
 ${PYTHON_EXEC} ${va2wa_calc_SCRIPT}
