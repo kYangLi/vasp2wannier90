@@ -57,7 +57,7 @@ Here is an example of the `vr.input.json`:
   "cores_per_node":24,
   "nodes_quantity":1,
   "pbs_walltime":48,
-  "pbs_queue":"unset-pbs-queue",
+  "job_queue":"unset-queue",
   "plot_energy_window":[-2,2]
 }
 ```

@@ -57,10 +57,17 @@ def mpirun(filename_list, calc_para_list, calc_prog, calc_prog_log):
   elif sys_type == 'slurm':
     command = "srun %s >> %s" %(calc_prog, calc_prog_log)
   elif sys_type == 'nscc':
-    command = "yhrun -N %d -n %d %s >> %s" %(nodes_quantity,
-                                             total_cores_number,
-                                             calc_prog,
-                                             calc_prog_log)
+    job_queue = calc_para_list["job_queue"]
+    command = "yhrun -p %s -N %d -n %d %s >> %s" %(job_queue,
+                                                   nodes_quantity,
+                                                   total_cores_number,
+                                                   calc_prog,
+                                                   calc_prog_log)
+    if job_queue == 'unset-queue':
+      command = "yhrun -N %d -n %d %s >> %s" %(nodes_quantity,
+                                               total_cores_number,
+                                               calc_prog,
+                                               calc_prog_log)
   elif sys_type == 'direct':
     openmp_cpus = calc_para_list["openmp_cpus"]
     mpi_machinefile = filename_list["mpi_machinefile"]
@@ -79,6 +86,7 @@ def mpirun(filename_list, calc_para_list, calc_prog, calc_prog_log):
                    process_num, calc_prog, calc_prog_log)
   start_time = time.time()
   _ = os.system("date >> %s" %calc_prog_log)
+  print(intel_module + '; ' + command)
   _ = os.system(intel_module + '; ' + command)
   _ = os.system("date >> %s" %calc_prog_log)
   end_time = time.time()

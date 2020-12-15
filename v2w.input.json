@@ -11,6 +11,6 @@
   "openmp_cpus":1,
   "nodes_quantity":1,
   "pbs_walltime":48,
-  "pbs_queue":"unset-pbs-queue",
+  "job_queue":"unset-queue",
   "plot_energy_window":[-2,2]
 }
