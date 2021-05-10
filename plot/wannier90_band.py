@@ -28,7 +28,7 @@ def get_command_line_input():
                       help='Plot resolution (dpi).')
   parser.add_argument('-s', '--point-size', dest='plot_point_size',
                       default=1.0, type=float,
-                      help='Plot resolution (dpi).')
+                      help='Point size of the wannier band plot.')
   parser.add_argument('-t', '--tag', dest='plot_tag',
                       default='w90.replot', type=str,
                       help='Output file tag name.')
